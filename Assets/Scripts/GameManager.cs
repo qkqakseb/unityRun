@@ -4,94 +4,77 @@ using UnityEngine;
 
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SceneManagement;
 
+// 게임 오버 상테를 표현하고, 게임 점수와 UI를 관리하는 게임 매니저
+// 씬에는 단 하나의 게임 매니저만 존재할 수 있음
 public class GameManager : MonoBehaviour
 {
-    private GameObject gameOverTxtObj = default;
-    private GameObject timeTxtObj = default;  // 생존 시간을 표시할 텍스트
-    private GameObject bestRecordTxtObj = default;  // 최고 기록을 표시할 텍스트
+    // 싱글턴을 할당한 전역 변수
+    public static GameManager instance;
 
-    private const string SCENE_NAME = "SampleScene";
-    private const string BEST_TIME_RECORD = "BestTime";
-    private float surviveTime = default;
-    private bool isGameOver = false;
+    // 게임오버 상태
+    public bool isGameover = false;
+    // 점수를 출력할 UI 텍스트
+    public Text scoreText;
+    // 게임 오버 시 활성화할 UI 게임 오브젝트
+    public GameObject gameoverUI;
+    // 게임 점수
+    private int score = 0;
 
     // Start is called before the first frame update
     void Start()
     {
-        // 출력할 텍스트 오브젝트를 찾아온다
-        GameObject uiObj_ = Func.GetRootObj("UiObjs");
-        // if(uiObj_ == null || uiObj_ == default)
-        // {
-        //     Debug.Log("uiObj_  못찾았다.");
-        // }
-        // else
-        // {
-        //     Debug.Log("uiObj_  찾았다.");
-        // }
-
-        timeTxtObj = uiObj_.FindChildObj("TimeText");
-        gameOverTxtObj = uiObj_.FindChildObj("GameOverText");
-        bestRecordTxtObj = uiObj_.FindChildObj("BestTimeTxt");
-
-        surviveTime = 0f;
-        isGameOver = false;
-        gameOverTxtObj.transform.localScale = new Vector3(0.001f, 0.001f, 0.001f);
-
-        
-        // if(uiObj_ == null || uiObj_ == default)
-        // {
-        //     Debug.Log("uiObj_  못찾았다.");
-        // }
-        // else
-        // {
-        //     Debug.Log("uiObj_  찾았다.");
-        // }
     }
 
-    // Update is called once per frame
+    // 게임 시작과 동시에 싱글턴을 구성
+    private void Awake()
+    {
+        // 싱글턴 변수  instance가 비어 있는가?
+        if(instance == null)
+        {
+            // instance가 비어 있다면(null) 그곳에 자기 자신을 할당
+            instance = this;
+        }
+        else
+        {
+            // instance에 이미 다른 GameManager 오브젝트가 할당되어 있는 경우
+
+            // 씬에 두 개 이상의 GameManager 오브젝트가 존재한다는 의미
+            // 싱글턴 오브젝트는 하나만 존재해야 하므로 자신의 게임 오브젝트를 파괴
+            Debug.LogWarning("씬에 두개 이상의 게임 매니저가 존재합니다.!");
+            Destroy(gameObject);
+        }
+    }
+
     void Update()
     {
-        if(isGameOver == true)
+        if (isGameover && Input.GetMouseButtonDown(0))
         {
-            if(Input.GetKeyDown(KeyCode.R))
-            {
-                Func.LoadScene(SCENE_NAME);
-            } // if : R 키 누른 경우 리스타트
-            if(Input.GetKeyDown(KeyCode.Q))
-            {
-                Func.QuitThisGame();
-            }
-        }  // if : 게임 오버인 경우
-
-        // 게임 오버가 아닌 경우
-
-        // 생존시간을 갱신한다.
-            surviveTime = surviveTime + Time.deltaTime;
-            Func.SetTmpText(timeTxtObj, $"Time : {Mathf.FloorToInt(surviveTime)}");
-          
-            // timeTxt.gameObject
+            // 게임오버 사태에서 마우스 왼쪽 버튼을 클릭하면 현재 씬 재시작
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
     }
 
-    // 현재 게임을 게임오버 상태로 변경하는 메서드
-    public void EndGame() 
+    // 점수를 증가시키는 메서드
+    public void AddScore(int newScore)
     {
-        isGameOver = true;
-        // gameOverTxtObj.SetActive(true);
-        gameOverTxtObj.transform.localScale = Vector3.one;
-
-        // BestTime 키로 저장된 이전까지의 최고 기록 가져오기
-        float bestTime = PlayerPrefs.GetFloat(BEST_TIME_RECORD);
-
-        // 이전까지의 최고 기록보다 현재 생존 시간이 더 긴 경우
-        if(bestTime < surviveTime)
+        // 게임 오버가 아니라면
+        if (!isGameover)
         {
-            //  플레이어 프리팹스에 베스트 타임을 갱신해서 저장한다.
-            bestTime = surviveTime;
-            PlayerPrefs.SetFloat(BEST_TIME_RECORD, bestTime);
-        } // if : 현재 surviveTime이 bestTime 보다 큰 경우
+            // 점수 증가
+            score += newScore;
+            scoreText.text = "Score : " + score;
+        }
+    }
 
-        // 최고 기록을 텍스트에 갱신한다.
-        Func.SetTmpText(bestRecordTxtObj, $"Best Time : {Mathf.FloorToInt(bestTime)}");
-    }   // EndGame()
+
+    // 플레이어 캐릭터 사망 시 게임오버를 실행하는 메서드
+    public void OnPlayerDead()
+    {
+        // 현재 상태를 게임오버 상태로 변경
+        isGameover = true;
+        // 게임오버 UI를 활성화
+        gameoverUI.SetActive(true);    
+    }
 }
