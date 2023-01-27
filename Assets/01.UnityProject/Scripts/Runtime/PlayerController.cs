@@ -67,6 +67,7 @@ public class PlayerController : MonoBehaviour
 
         playerRigid.velocity = Vector2.zero;
         isDead = true;
+        GFunc.Log(isDead);
 
         // 게임 메니저로 플레이어가 죽었을 때의 ui 출력
         GameManager.instance.OnPlayerDead();
